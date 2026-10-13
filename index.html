@@ -162,6 +162,7 @@
     <button class="nav" onclick="shiftDay(1)">▶</button>
     <button class="nav" onclick="setDay(0)">Azi</button>
     <button class="soundbtn" id="sndbtn" onclick="toggleSound()">🔕 Sunet oprit</button>
+    <button class="btn-orange" id="installbtn" style="display:none" onclick="doInstall()">📲 Instalează pe telefon</button>
     <span class="counts" id="counts">—</span>
   </div>
 
@@ -585,6 +586,30 @@ setInterval(()=>{ document.getElementById('clock').textContent=new Date().toLoca
 setInterval(syncAll,POLL_MS);
 setInterval(discoverLeagues,LEAGUES_REFRESH_MS);
 (async()=>{ await discoverLeagues(); await syncAll(true); })();
+
+/* ================= INSTALARE PE ECRAN (PWA) ================= */
+let deferredPrompt=null;
+if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').catch(()=>{}); }
+window.addEventListener('beforeinstallprompt',e=>{
+  e.preventDefault(); deferredPrompt=e;
+  document.getElementById('installbtn').style.display='';
+});
+async function doInstall(){
+  if(deferredPrompt){
+    deferredPrompt.prompt();
+    await deferredPrompt.userChoice;
+    deferredPrompt=null;
+    document.getElementById('installbtn').style.display='none';
+  }else{
+    alert('Pentru a pune aplicația pe ecran:\n\n• Android (Chrome): meniul ⋮ (sus-dreapta) → „Adaugă la ecranul de pornire”\n\n• iPhone (Safari): butonul de partajare ⬆️ (jos) → „Adaugă la ecranul principal”\n\nImportant: deschide pagina în Chrome sau Safari, NU în browserul din interiorul altei aplicații (WhatsApp, Facebook etc.).');
+  }
+}
+window.addEventListener('appinstalled',()=>{ document.getElementById('installbtn').style.display='none'; });
+// pe iPhone nu există beforeinstallprompt — arătăm butonul cu instrucțiuni
+const isIOS=/iphone|ipad|ipod/i.test(navigator.userAgent);
+const inStandalone=window.matchMedia('(display-mode: standalone)').matches||navigator.standalone;
+if(isIOS&&!inStandalone) document.getElementById('installbtn').style.display='';
+
 </script>
 </body>
 </html>
