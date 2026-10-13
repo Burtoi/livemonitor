@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Live Monitor | Nowgoal26</title>
+<style>
+  :root{
+    --bg:#0b1220; --bg2:#0e1628; --card:#111b30; --card2:#0d1526;
+    --line:#1d2a44; --txt:#dbe4f3; --mut:#7e8ca6; --dim:#5a6782;
+    --accent:#f5a623; --green:#2ecc71; --greenbg:#153a2a; --red:#e74c3c;
+    --blue:#3b82f6; --gold:#ffc83d;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--txt); font-family:'Segoe UI',system-ui,sans-serif; font-size:14px}
+  button{font-family:inherit}
+
+  /* ---------- header ---------- */
+  .topbar{display:flex; align-items:center; gap:14px; padding:10px 18px; background:#070d1a; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .logo{display:flex; align-items:center; gap:8px; font-size:19px; font-weight:700; white-space:nowrap}
+  .logo .dot{width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#6ab0ff,#1d4ed8)}
+  .logo .lm{color:#eaf1ff}
+  .logo .ng{color:var(--gold)}
+  .sync{font-family:Consolas,monospace; font-size:12.5px; color:#5fa8ff}
+  .srcpill{margin-left:auto; border:1px solid #2ecc71; color:#9ff3c0; background:#0e2a1e; border-radius:20px; padding:4px 14px; font-size:12.5px; white-space:nowrap}
+
+  .filters{display:flex; align-items:center; gap:12px; padding:10px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; background:var(--bg)}
+  .flabel{color:var(--mut)}
+  .chip{display:flex; align-items:center; gap:7px; background:#0f1830; border:1px solid var(--line); border-radius:20px; padding:6px 13px; cursor:pointer; user-select:none; font-weight:600; font-size:13px}
+  .chip input{accent-color:var(--accent)}
+  .filters input[type=number]{width:62px; background:#0f1830; color:var(--txt); border:1px solid var(--line); border-radius:7px; padding:6px 8px}
+  .btn-orange{background:var(--accent); color:#1a1205; border:0; border-radius:8px; padding:8px 16px; font-weight:700; cursor:pointer}
+  .btn-orange:hover{filter:brightness(1.08)}
+  .clock{margin-left:auto; color:var(--mut); display:flex; align-items:center; gap:8px; font-family:Consolas,monospace}
+  .clock .d{width:9px;height:9px;border-radius:50%;background:var(--green); box-shadow:0 0 8px var(--green)}
+  .clock .d.bad{background:var(--red); box-shadow:0 0 8px var(--red)}
+
+  .daybar{display:flex; align-items:center; gap:10px; padding:9px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap}
+  .daybar .nav{background:#0f1830; border:1px solid var(--line); color:var(--txt); border-radius:7px; padding:5px 12px; cursor:pointer}
+  .daybar .datebox{background:#0f1830; border:1px solid var(--line); border-radius:7px; padding:5px 12px; font-family:Consolas,monospace}
+  .daybar .counts{margin-left:auto; color:var(--mut); font-size:13px}
+  .soundbtn{background:#0f1830;border:1px solid var(--line);color:var(--txt);border-radius:20px;padding:5px 13px;cursor:pointer}
+  .soundbtn.on{border-color:var(--gold); color:var(--gold)}
+
+  .cardbar{display:flex; align-items:center; gap:12px; padding:9px 18px; border-bottom:1px solid var(--line); flex-wrap:wrap; color:var(--mut)}
+
+  /* ---------- layout ---------- */
+  .main{display:grid; grid-template-columns:minmax(380px,46%) 1fr; gap:16px; padding:14px 18px; align-items:start}
+  @media(max-width:980px){ .main{grid-template-columns:1fr} }
+
+  .listhead{display:flex; align-items:center; gap:10px; margin-bottom:10px; font-weight:700; letter-spacing:.5px}
+  .pill{background:#0f1830;border:1px solid var(--line);border-radius:14px;padding:2px 11px;font-size:12px;color:var(--mut);font-weight:400}
+
+  /* ---------- carduri meci ---------- */
+  .mcard{background:var(--card); border:1px solid var(--line); border-radius:12px; padding:12px 14px; margin-bottom:12px; cursor:pointer; position:relative; transition:border-color .2s}
+  .mcard:hover{border-color:#31486f}
+  .mcard.sel{border-color:var(--accent); box-shadow:0 0 0 1px var(--accent)}
+  .mcard .r1{display:flex; align-items:center; gap:10px; flex-wrap:wrap}
+  .live-badge{display:flex;align-items:center;gap:6px;background:#0e2a1e;border:1px solid #1d5c3c;color:#4be38a;border-radius:14px;padding:2px 10px;font-size:11.5px;font-weight:700}
+  .live-badge .d{width:7px;height:7px;border-radius:50%;background:#4be38a;animation:blink 1.2s infinite}
+  @keyframes blink{50%{opacity:.25}}
+  .sched-badge{background:#13203a;border:1px solid var(--line);color:#8fa4c9;border-radius:14px;padding:2px 10px;font-size:11.5px}
+  .fin-badge{background:#1a2338;border:1px solid var(--line);color:var(--mut);border-radius:14px;padding:2px 10px;font-size:11.5px}
+  .scorebox{border:1px solid var(--gold); color:var(--gold); border-radius:8px; padding:1px 10px; font-weight:700; font-family:Consolas,monospace}
+  .lg{color:var(--mut); font-size:12.5px}
+  .half{margin-left:auto; color:var(--mut); font-size:12.5px}
+  .r2{margin-top:7px; font-size:16px; font-weight:700}
+  .r2 .vs{color:var(--dim); font-weight:400; font-size:13px; margin:0 6px}
+  .r2 .gball{color:var(--gold); font-weight:400; font-size:13px}
+  .sub{color:var(--dim); font-size:12px; margin-top:3px}
+  .badges{display:flex; gap:8px; margin-top:9px; flex-wrap:wrap}
+  .badge{border:1px solid var(--line); background:#0f1830; color:#b9c6de; border-radius:8px; padding:3px 10px; font-size:12.5px; font-weight:600}
+  .badge.up{background:var(--greenbg); border-color:#1d6b43; color:#53e895}
+  .badge.done{color:var(--mut)}
+  .statline{margin-top:8px; font-size:12.5px; color:var(--mut)}
+  .statline b{color:var(--txt)}
+
+  /* bară de impuls pe card */
+  .pressbar{height:4px; border-radius:3px; background:#17223c; margin-top:9px; overflow:hidden}
+  .pressbar i{display:block; height:100%; border-radius:3px; background:linear-gradient(90deg,#f5a623,#ff6b35); transition:width .6s}
+  .presslabel{display:flex; justify-content:space-between; font-size:11px; color:var(--dim); margin-top:3px}
+  .presslabel .hot{color:#ff9d4d; font-weight:700}
+
+  /* IMPULS: cardul pulsează */
+  .mcard.pulse{border-color:#ff8c2e; animation:cardpulse 1.5s ease-in-out infinite}
+  @keyframes cardpulse{
+    0%,100%{box-shadow:0 0 0 0 rgba(255,140,46,0)}
+    50%{box-shadow:0 0 18px 2px rgba(255,140,46,.55); border-color:#ffab55}
+  }
+  .mcard.pulse .scorebox{animation:scoreglow 1.5s ease-in-out infinite}
+  @keyframes scoreglow{50%{box-shadow:0 0 10px rgba(255,200,61,.8)}}
+
+  /* GOL: flash verde */
+  .mcard.goal{border-color:var(--green); animation:goalflash .9s ease-in-out infinite}
+  @keyframes goalflash{
+    0%,100%{box-shadow:0 0 0 0 rgba(46,204,113,0); background:var(--card)}
+    50%{box-shadow:0 0 24px 4px rgba(46,204,113,.6); background:#12301f}
+  }
+  .goaltag{position:absolute; top:-10px; right:14px; background:var(--green); color:#04150b; font-weight:800; font-size:11.5px; border-radius:12px; padding:2px 12px; letter-spacing:1px; animation:blink 1s infinite}
+  .pulsetag{position:absolute; top:-10px; right:14px; background:#ff8c2e; color:#1d0f02; font-weight:800; font-size:11.5px; border-radius:12px; padding:2px 12px; letter-spacing:1px}
+  .mcard.goal .pulsetag{display:none}
+
+  /* ---------- panou dreapta ---------- */
+  .panel{background:var(--card2); border:1px solid var(--line); border-radius:12px; overflow:hidden; position:sticky; top:12px}
+  .tabs{display:flex; border-bottom:1px solid var(--line)}
+  .tab{flex:1; text-align:center; padding:12px; cursor:pointer; color:var(--mut); font-weight:700; letter-spacing:.6px; font-size:13px; border-bottom:2px solid transparent}
+  .tab.act{color:var(--accent); border-bottom-color:var(--accent)}
+  .tab .cnt{background:var(--gold); color:#1a1205; border-radius:10px; padding:0 8px; font-size:11.5px; margin-left:6px}
+  .pbody{padding:16px 18px; max-height:calc(100vh - 170px); overflow:auto}
+  .ptitle{font-size:19px; font-weight:700}
+  .ptitle .sc{color:var(--gold); font-family:Consolas,monospace; margin:0 8px}
+  .psub{color:var(--mut); font-size:13px; margin-top:4px}
+  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px}
+  .tile{border:1px solid var(--line); border-radius:10px; padding:11px 8px; text-align:center; background:#0c1424}
+  .tile .v{font-size:17px; font-weight:700}
+  .tile .k{font-size:10.5px; color:var(--dim); letter-spacing:.8px; margin-top:3px}
+  .sechead{color:#aab8d4; letter-spacing:.8px; font-weight:700; font-size:12.5px; margin:18px 0 8px}
+  .cmp{display:grid; grid-template-columns:1fr auto 1fr; gap:6px 14px; font-size:13.5px}
+  .cmp .l{text-align:left; font-weight:700}
+  .cmp .k{color:var(--dim); text-align:center; font-size:11px; letter-spacing:.6px; align-self:center}
+  .cmp .r{text-align:right; font-weight:700}
+  .hl{color:var(--gold)}
+  .prob{display:grid; grid-template-columns:110px 1fr 46px 52px; gap:10px; align-items:center; margin:6px 0; font-size:13px}
+  .prob .nm{color:#aab8d4}
+  .pb{height:7px; background:#17223c; border-radius:4px; overflow:hidden}
+  .pb i{display:block;height:100%;border-radius:4px;background:linear-gradient(90deg,#f5a623,#ffc83d)}
+  .pb.g i{background:linear-gradient(90deg,#27ae60,#2ecc71)}
+  .prob .v{text-align:right; font-weight:700}
+  .prob .tr{text-align:right; font-size:12px; color:var(--dim); font-family:Consolas,monospace}
+  .tr.up{color:#53e895}.tr.dn{color:#ff7b6b}
+  .empty{color:var(--dim); text-align:center; padding:40px 10px}
+
+  /* monitoare */
+  .alert-item{border:1px solid var(--line); border-left:3px solid #ff8c2e; background:#0f1830; border-radius:8px; padding:9px 12px; margin-bottom:8px; font-size:13px; cursor:pointer}
+  .alert-item.goal{border-left-color:var(--green)}
+  .alert-item .tm{color:var(--dim); font-size:11.5px; font-family:Consolas,monospace}
+
+  .footer{display:flex; justify-content:space-between; color:var(--mut); font-size:12.5px; padding:10px 18px; border-top:1px solid var(--line)}
+</style>
+</head>
+<body>
+  <div class="topbar">
+    <div class="logo"><span class="dot"></span><span class="lm">Live Monitor</span><span style="color:var(--dim)">|</span><span class="ng">Nowgoal26</span></div>
+    <div class="sync" id="syncline">[PARSER] Se sincronizează…</div>
+    <div class="srcpill">ESPN · meciuri reale, toată lumea</div>
+  </div>
+
+  <div class="filters">
+    <span class="flabel">Filtrare:</span>
+    <label class="chip"><input type="checkbox" id="fAlerts"> Doar alerte</label>
+    <label class="chip"><input type="checkbox" id="fLive"> Doar live</label>
+    <span class="flabel">Minutul de la:</span><input type="number" id="minFrom" value="1" min="0" max="120">
+    <span class="flabel">până la:</span><input type="number" id="minTo" value="90" min="0" max="120">
+    <button class="btn-orange" onclick="refresh(true)">Reîncarcă acum</button>
+    <div class="clock"><span class="d" id="syncdot"></span><span id="clock">--:--:--</span></div>
+  </div>
+
+  <div class="daybar">
+    <span class="flabel">Ziua:</span>
+    <button class="nav" onclick="shiftDay(-1)">◀</button>
+    <span class="datebox" id="datebox">—</span>
+    <button class="nav" onclick="shiftDay(1)">▶</button>
+    <button class="nav" onclick="setDay(0)">Azi</button>
+    <button class="soundbtn" id="sndbtn" onclick="toggleSound()">🔕 Sunet oprit</button>
+    <span class="counts" id="counts">—</span>
+  </div>
+
+  <div class="cardbar">
+    <span>Afișează pe carduri:</span>
+    <label class="chip"><input type="checkbox" id="b15" checked> Peste 1.5</label>
+    <label class="chip"><input type="checkbox" id="b25" checked> Peste 2.5</label>
+    <label class="chip"><input type="checkbox" id="b35"> Peste 3.5</label>
+    <label class="chip"><input type="checkbox" id="bgg" checked> Ambele înscriu</label>
+    <label class="chip"><input type="checkbox" id="b1x2"> 1 / X / 2</label>
+  </div>
+
+  <div class="main">
+    <div>
+      <div class="listhead">MECIURI <span class="pill" id="lcount">0 din 0</span></div>
+      <div id="list"></div>
+    </div>
+    <div class="panel">
+      <div class="tabs">
+        <div class="tab act" id="tabD" onclick="setTab('d')">DETALII MECI</div>
+        <div class="tab" id="tabM" onclick="setTab('m')">MONITOARE <span class="cnt" id="acount">0</span></div>
+      </div>
+      <div class="pbody" id="pbody"><div class="empty">Selectează un meci din listă.</div></div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <span id="wx">Live Monitor · impulsuri active până la gol</span>
+    <span>Probabilitățile sunt estimări statistice, nu sfaturi de pariere. 18+</span>
+  </div>
+
+<script>
+let DATA=null, sel=null, tab='d', offset=0, sound=false;
+let audioCtx=null;
+const seenGoals=new Set(), seenPulse=new Set();
+
+function beep(freq,dur,when=0,type='sine',gain=.25){
+  if(!sound) return;
+  try{
+    audioCtx=audioCtx||new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(), g=audioCtx.createGain();
+    o.type=type;o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);
+    const t=audioCtx.currentTime+when;
+    g.gain.setValueAtTime(0.0001,t);g.gain.exponentialRampToValueAtTime(gain,t+.02);
+    g.gain.exponentialRampToValueAtTime(0.0001,t+dur);
+    o.start(t);o.stop(t+dur+.05);
+  }catch(e){}
+}
+function goalSound(){ beep(660,.18,0,'square');beep(880,.18,.2,'square');beep(1180,.4,.4,'square',.3); }
+function pulseSound(){ beep(520,.12,0,'sine',.18);beep(520,.12,.25,'sine',.18); }
+function toggleSound(){
+  sound=!sound;
+  const b=document.getElementById('sndbtn');
+  b.className='soundbtn'+(sound?' on':''); b.textContent=sound?'🔔 Sunet pornit':'🔕 Sunet oprit';
+  if(sound) beep(700,.15);
+}
+
+function fmtDate(s){ return s? s.slice(6,8)+'/'+s.slice(4,6)+'/'+s.slice(0,4) : '—'; }
+function esc(s){ return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function tstr(t){ const d=new Date(t); return d.toLocaleTimeString('ro-RO'); }
+function kick(d){ const x=new Date(d); return x.toLocaleTimeString('ro-RO',{hour:'2-digit',minute:'2-digit'}); }
+
+async function refresh(force){
+  try{
+    const r=await fetch('/api/state?offset='+offset);
+    DATA=await r.json();
+    document.getElementById('syncdot').className='d'+(DATA.syncOk?'':' bad');
+    const c=DATA.counts;
+    document.getElementById('syncline').textContent=
+      `[PARSER] Sincronizare ${DATA.syncOk?'OK':'EȘUATĂ'} — ${c.total} de meciuri afișate (${c.live} live · ${c.scheduled} programate · ${c.finished} terminate) · sursa espn`;
+    document.getElementById('counts').textContent=`${c.live} live · ${c.scheduled} programate · ${c.finished} terminate`;
+    document.getElementById('datebox').textContent=fmtDate(DATA.date);
+    document.getElementById('acount').textContent=c.alerts;
+    // sunete pt. evenimente noi
+    for(const g of (DATA.recentGoals||[])){
+      const k=g.id+'|'+g.score;
+      if(!seenGoals.has(k)){ seenGoals.add(k); goalSound(); }
+    }
+    for(const m of DATA.matches){
+      if(m.pulse && !seenPulse.has(m.id)){ seenPulse.add(m.id); pulseSound(); }
+      if(!m.pulse) seenPulse.delete(m.id);
+    }
+    render();
+  }catch(e){
+    document.getElementById('syncdot').className='d bad';
+  }
+}
+
+function filtered(){
+  if(!DATA) return [];
+  const fa=document.getElementById('fAlerts').checked;
+  const fl=document.getElementById('fLive').checked;
+  const m1=+document.getElementById('minFrom').value||0;
+  const m2=+document.getElementById('minTo').value||120;
+  return DATA.matches.filter(m=>{
+    if(fa&&!m.pulse) return false;
+    if(fl&&m.state!=='live') return false;
+    if(m.state==='live'&&(m.minute<m1||m.minute>m2)) return false;
+    return true;
+  });
+}
+
+function badgeHtml(m){
+  const out=[];
+  const show={b15:'over15',b25:'over25',b35:'over35'};
+  const names={over15:'Peste 1.5',over25:'Peste 2.5',over35:'Peste 3.5'};
+  for(const id in show){
+    if(!document.getElementById(id).checked) continue;
+    const k=show[id]; const v=m.probs[k]; const tr=(m.trend||{})[k]||0;
+    const cls=v>=100?'done':(tr>0&&m.state==='live'?'up':'');
+    const arrow=(tr>0&&m.state==='live'&&v<100)?'▲':'';
+    out.push(`<span class="badge ${cls}">${arrow}${names[k]} — ${v}%</span>`);
+  }
+  if(document.getElementById('bgg').checked){
+    const v=m.probs.btts, tr=(m.trend||{}).btts||0;
+    const cls=v>=100?'done':(tr>0&&m.state==='live'?'up':'');
+    out.push(`<span class="badge ${cls}">${(tr>0&&v<100&&m.state==='live')?'▲':''}Ambele înscriu — ${v}%</span>`);
+  }
+  if(document.getElementById('b1x2').checked){
+    out.push(`<span class="badge">1 ${m.probs.p1}% · X ${m.probs.px}% · 2 ${m.probs.p2}%</span>`);
+  }
+  return out.join('');
+}
+
+function render(){
+  const arr=filtered();
+  document.getElementById('lcount').textContent=`${arr.length} din ${DATA?DATA.matches.length:0}`;
+  const list=document.getElementById('list');
+  list.innerHTML=arr.map(m=>{
+    const isGoal=!!m.recentGoal;
+    const cls=['mcard']; if(m.pulse)cls.push('pulse'); if(isGoal)cls.push('goal'); if(sel===m.id)cls.push('sel');
+    let st1='';
+    if(m.state==='live') st1=`<span class="live-badge"><span class="d"></span>LIVE ${m.minute}’</span><span class="scorebox">${m.score.home} - ${m.score.away}</span>`;
+    else if(m.state==='finished') st1=`<span class="fin-badge">FINAL</span><span class="scorebox">${m.score.home} - ${m.score.away}</span>`;
+    else st1=`<span class="sched-badge">${kick(m.startTime)}</span>`;
+    const half=m.isHT?'Pauză':(m.period===2?'Repriza 2':m.period===1?'Repriza 1':(m.state==='scheduled'?'Programat':''));
+    const sh=m.stats.home||{}, sa=m.stats.away||{};
+    const hasStats=(sh.shots+sa.shots+sh.corners+sa.corners)>0;
+    const stat=m.state!=='scheduled'
+      ? (hasStats
+        ? `<div class="statline"><b>1</b> ${m.probs.p1}% &nbsp;<b>X</b> ${m.probs.px}% &nbsp;<b>2</b> ${m.probs.p2}% &nbsp;·&nbsp; C: ${sh.corners}–${sa.corners} &nbsp;Ș: ${sh.shots}–${sa.shots} &nbsp;🟨 ${sh.yellow}–${sa.yellow}</div>`
+        : `<div class="statline"><b>1</b> ${m.probs.p1}% &nbsp;<b>X</b> ${m.probs.px}% &nbsp;<b>2</b> ${m.probs.p2}% &nbsp;·&nbsp; <i>fără statistici detaliate</i></div>`)
+      : '';
+    const press=m.state==='live'
+      ? `<div class="pressbar"><i style="width:${m.pressure.total}%"></i></div>
+         <div class="presslabel"><span>impuls</span><span class="${m.pressure.total>=55?'hot':''}">${m.pressure.total}/100${m.pressure.total>=55?' · gol iminent?':''}</span></div>`
+      : '';
+    const tag=isGoal?`<span class="goaltag">⚽ GOL ${esc(m.recentGoal.teamName)}!</span>`:(m.pulse?'<span class="pulsetag">IMPULS</span>':'');
+    const gb=(s,side)=>m.score[side]>0?` <span class="gball">⚽${m.score[side]}</span>`:'';
+    return `<div class="${cls.join(' ')}" onclick="selectMatch('${m.id}')">${tag}
+      <div class="r1">${st1}<span class="lg">${esc(m.league)}</span><span class="half">${half}</span></div>
+      <div class="r2">${esc(m.teams.home)}${gb(m,'home')}<span class="vs">vs</span>${esc(m.teams.away)}${gb(m,'away')}</div>
+      <div class="sub">Comparație de cote live · ESPN</div>
+      <div class="badges">${badgeHtml(m)}</div>
+      ${stat}${press}
+    </div>`;
+  }).join('') || '<div class="empty">Niciun meci pentru filtrele curente.</div>';
+  renderPanel();
+}
+
+function selectMatch(id){ sel=id; tab='d'; setTabUi(); render(); }
+function setTab(t){ tab=t; setTabUi(); renderPanel(); }
+function setTabUi(){
+  document.getElementById('tabD').className='tab'+(tab==='d'?' act':'');
+  document.getElementById('tabM').className='tab'+(tab==='m'?' act':'');
+}
+
+function probRow(name,val,tr,green){
+  const trh=tr===undefined||tr===null?'':(tr>0?`<span class="tr up">▲+${tr}</span>`:tr<0?`<span class="tr dn">▼${tr}</span>`:`<span class="tr">0.0</span>`);
+  return `<div class="prob"><span class="nm">${name}</span><div class="pb${green?' g':''}"><i style="width:${val}%"></i></div><span class="v">${val}%</span>${trh||'<span class="tr"></span>'}</div>`;
+}
+
+function renderPanel(){
+  const el=document.getElementById('pbody');
+  if(tab==='m'){
+    const al=(DATA&&DATA.alerts)||[];
+    el.innerHTML=al.length?al.map(a=>`<div class="alert-item ${a.level==='goal'?'goal':''}" onclick="selectMatch('${a.id}')">
+        <div>${a.level==='goal'?'⚽ ':'⚡ '}${esc(a.text)}</div><div class="tm">${tstr(a.t)}</div></div>`).join('')
+      :'<div class="empty">Nicio alertă încă. Cardurile pulsează automat când presiunea crește.</div>';
+    return;
+  }
+  const m=DATA&&DATA.matches.find(x=>x.id===sel);
+  if(!m){ el.innerHTML='<div class="empty">Selectează un meci din listă.</div>'; return; }
+  const sh=m.stats.home||{}, sa=m.stats.away||{};
+  const stLabel=m.state==='live'?`${m.minute}’ · ${m.isHT?'Pauză':(m.period===2?'Repriza 2':'Repriza 1')}`:(m.state==='finished'?'Final':'Începe la '+kick(m.startTime));
+  const hiH=(a,b)=>a>b?'hl':'', hiA=(a,b)=>b>a?'hl':'';
+  const tr=m.trend||{};
+  el.innerHTML=`
+    <div class="ptitle">${esc(m.teams.home)} <span class="sc">${m.score.home} : ${m.score.away}</span> ${esc(m.teams.away)}</div>
+    <div class="psub">${esc(m.league)} &nbsp; ${stLabel} &nbsp; sursa: ESPN</div>
+    <div class="tiles">
+      <div class="tile"><div class="v">${sh.corners}–${sa.corners}</div><div class="k">CORNERE</div></div>
+      <div class="tile"><div class="v">${sh.onTarget}–${sa.onTarget}</div><div class="k">ȘUTURI PE POARTĂ</div></div>
+      <div class="tile"><div class="v">${sh.yellow}–${sa.yellow}</div><div class="k">CARTONAȘE G</div></div>
+      <div class="tile"><div class="v">${sh.shots}–${sa.shots}</div><div class="k">ȘUTURI TOTALE</div></div>
+      <div class="tile"><div class="v">${sh.possession||0}%–${sa.possession||0}%</div><div class="k">POSESIE</div></div>
+      <div class="tile"><div class="v">${m.state==='live'?m.pressure.total:0}</div><div class="k">INDICE IMPULS</div></div>
+    </div>
+    <div class="sechead">COMPARAȚIE STATISTICI</div>
+    <div class="cmp">
+      <span class="l ${hiH(sh.corners,sa.corners)}">${sh.corners}</span><span class="k">CORNERE</span><span class="r ${hiA(sh.corners,sa.corners)}">${sa.corners}</span>
+      <span class="l ${hiH(sh.shots,sa.shots)}">${sh.shots}</span><span class="k">ȘUTURI</span><span class="r ${hiA(sh.shots,sa.shots)}">${sa.shots}</span>
+      <span class="l ${hiH(sh.onTarget,sa.onTarget)}">${sh.onTarget}</span><span class="k">PE POARTĂ</span><span class="r ${hiA(sh.onTarget,sa.onTarget)}">${sa.onTarget}</span>
+      <span class="l ${hiH(sh.possession,sa.possession)}">${sh.possession||0}</span><span class="k">POSESIE %</span><span class="r ${hiA(sh.possession,sa.possession)}">${sa.possession||0}</span>
+      <span class="l ${hiH(sh.yellow,sa.yellow)}">${sh.yellow}</span><span class="k">CARTONAȘE</span><span class="r ${hiA(sh.yellow,sa.yellow)}">${sa.yellow}</span>
+      <span class="l">${sh.red}</span><span class="k">ROȘII</span><span class="r">${sa.red}</span>
+      <span class="l ${hiH(m.score.home,m.score.away)}">${m.score.home}</span><span class="k">GOLURI</span><span class="r ${hiA(m.score.home,m.score.away)}">${m.score.away}</span>
+    </div>
+    ${m.state==='live'?`
+    <div class="sechead">IMPULS (presiune pe ultimele ~10 minute)</div>
+    ${probRow(esc(m.teams.home),m.pressure.home,null)}
+    ${probRow(esc(m.teams.away),m.pressure.away,null)}
+    ${probRow('<b>Total</b>',m.pressure.total,null,m.pressure.total>=55)}
+    ${m.pressure.total>=55?'<div style="color:#ff9d4d;font-size:12.5px;margin-top:4px">⚡ Impuls activ — presiune mare, cardul pulsează până se dă gol sau scade presiunea.</div>':''}
+    `:''}
+    <div class="sechead">PROBABILITĂȚI LIVE (estimare pe restul meciului)</div>
+    ${probRow('Peste 0.5 gol',m.probs.over05,null)}
+    ${probRow('Peste 1.5 goluri',m.probs.over15,tr.over15)}
+    ${probRow('Peste 2.5 goluri',m.probs.over25,tr.over25)}
+    ${probRow('Peste 3.5 goluri',m.probs.over35,tr.over35)}
+    ${probRow('Peste 4.5 goluri',m.probs.over45,null)}
+    ${probRow('Ambele înscriu',m.probs.btts,tr.btts,true)}
+    <div class="sechead">REZULTAT FINAL (1 / X / 2)</div>
+    ${probRow('1 — '+esc(m.teams.home),m.probs.p1,null)}
+    ${probRow('X — Egal',m.probs.px,null)}
+    ${probRow('2 — '+esc(m.teams.away),m.probs.p2,null)}
+  `;
+}
+
+function shiftDay(d){ offset+=d; refresh(true); }
+function setDay(v){ offset=v; refresh(true); }
+
+['fAlerts','fLive','b15','b25','b35','bgg','b1x2'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+['minFrom','minTo'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+setInterval(()=>{ document.getElementById('clock').textContent=new Date().toLocaleTimeString('ro-RO'); },1000);
+setInterval(refresh,10000);
+refresh();
+</script>
+</body>
+</html>
